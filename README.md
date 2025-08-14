@@ -1,67 +1,72 @@
 
 # OCPP-charge-Server
 
-一个基于 **Java + Spring Boot** 开发的 **OCPP 1.6J WebSocket 服务器**，支持电动车充电桩与平台的通信。  
-已通过基础功能测试：下发启动、下发停止、状态上传、正常，BootNotification 与设备信息解析正常。  
+[中文](README_zh.md)
 
-适合：
-- 充电桩厂商测试 OCPP 协议接入
-- 平台研发调试 OCPP 1.6J 业务逻辑
-- 学习 WebSocket 与 OCPP 协议实现
+A **Java + Spring Boot** based **OCPP 1.6J WebSocket server**, supporting communication between EV charging stations and a platform.
+Basic functionality has been tested: start command delivery, stop command delivery, status upload (normal), BootNotification and device information parsing work correctly.
 
----
+Suitable for:
 
-## ✨ 功能特性
-
-- 支持 **OCPP 1.6J** 协议（WebSocket JSON）
-- 支持的消息类型：
-  - BootNotification（设备启动上报）
-  - Heartbeat（心跳）
-  - Authorize（卡号认证）
-  - StartTransaction / StopTransaction（启动、停止充电）
-  - MeterValues（电表数据）
-  - SendLocalList（下发本地授权名单）
-  - GetLocalListVersion（查询本地名单版本）
-  - TriggerMessage（触发桩主动上报）
-  - GetConfiguration（获取配置参数）
-- **设备信息解析**：自动解析 BootNotification 报文中的厂商、型号、序列号、固件版本、SIM 信息等
-- 内存会话管理：维护充电桩状态、最后通讯时间、设备信息
-- REST API 查询桩状态
-- 日志记录与调试信息输出
+* Charging station manufacturers testing OCPP protocol integration
+* Platform R\&D debugging OCPP 1.6J business logic
+* Learning WebSocket and OCPP protocol implementation
 
 ---
 
-## 📦 环境要求
+## ✨ Features
 
-- **Java** 17+
-- **Maven** 3.6+
-- 推荐内存 ≥ 512MB
-- 网络：可访问充电桩的 WebSocket 连接
+* Supports **OCPP 1.6J** protocol (WebSocket JSON)
+* Supported message types:
+
+  * BootNotification (device startup report)
+  * Heartbeat
+  * Authorize (card authentication)
+  * StartTransaction / StopTransaction (start/stop charging)
+  * MeterValues (meter data)
+  * SendLocalList (send local authorization list)
+  * GetLocalListVersion (query local list version)
+  * TriggerMessage (trigger station to report actively)
+  * GetConfiguration (retrieve configuration parameters)
+* **Device information parsing**: automatically parses vendor, model, serial number, firmware version, SIM info, etc. from BootNotification messages
+* In-memory session management: maintains charging station status, last communication time, and device information
+* REST API for querying station status
+* Logging and debug output
 
 ---
 
-## 🚀 快速开始
+## 📦 Requirements
 
-### 1. 克隆项目
+* **Java** jdk1.8
+* **Maven** 3.6+
+* Recommended memory ≥ 512MB
+* Network: able to access the charging station’s WebSocket connection
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone the project
+
 ```bash
-git clone https://github.com/qyhua0/occp_charge.git
-cd OCPP-Java-Server
-````
+git clone https://github.com/qyhua0/ocpp_charge.git
+cd ocpp
+```
 
-### 2. 编译打包
+### 2. Build and package
 
 ```bash
 mvn clean package -DskipTests
 ```
 
-### 3. 启动服务
+### 3. Start the service
 
 ```bash
 java -jar target/ocpp-server-1.0.0.jar
 ```
 
-默认监听端口：`8080`
-OCPP WebSocket 地址：
+Default listening port: `8080`
+OCPP WebSocket address:
 
 ```
 ws://<server-ip>:8080/ocpp/{chargePointId}
@@ -69,10 +74,9 @@ ws://<server-ip>:8080/ocpp/{chargePointId}
 
 ---
 
+## 🔌 Example: BootNotification Parsing
 
-## 🔌 示例：BootNotification 解析
-
-桩上报：
+Station report:
 
 ```json
 [2,"uuid","BootNotification",{
@@ -89,89 +93,74 @@ ws://<server-ip>:8080/ocpp/{chargePointId}
 }]
 ```
 
-解析结果：
+Example charging flow:
 
-```json
-{
-  "vendor": "XQ",
-  "model": "ocpp_ac_7kw",
-  "serialNumber": "ks0117100000008",
-  "firmwareVersion": "250722",
-  "iccid": "",
-  "imsi": "",
-  "moduleVersion": "FC4X.250723",
-  "networkType": "1",
-  "bootTime": "2025-08-13T12:34:45Z"
-}
-```
+- Startup information
+  ![Startup Information](doc/启动.png)
+- Charging station energy upload information
+  ![Energy Upload](doc/充电_状态上传.png)
+- Charging end information
+  ![](doc/结束.png)
+
+- For detailed messages, please refer to[202508144_交互报文(开机，充电开始，充电结束).txt](doc/202508144_交互报文(开机，充电开始，充电结束).txt)
 
 ---
 
-## 📡 REST API（为了方便测试，全改成get在浏览器直接调用即可）
+## 📡 REST API
 
-| 方法   | 路径 | 说明 |
-| ------ | ---- | ---- |
-| GET    | /api/ocpp/connections | 显示当前的桩连接资料 |
-| GET    | /api/ocpp/status/{cpId} | 获取指定桩的状态与设备信息 |
-| GET    | /api/ocpp/remoteStart/{cpId}?idTag={idTag}\&connectorId={connectorId} | 下发启动充电（`idTag` 必填，`connectorId` 可选） |
-| GET    | /api/ocpp/remoteStop/{cpId}?transactionId={transactionId} | 下发结束充电 |
-| GET    | /api/ocpp/localList/version/{cpId}?timeoutSeconds={seconds} | 查询桩端 LocalList 版本（可选超时秒数，默认 10） |
-| GET    | /api/ocpp/localList/full/{cpId}?timeoutSeconds={seconds} | 全量下发白名单（Full 覆盖） |
-| POST   | /api/ocpp/localList/diff/{cpId}?timeoutSeconds={seconds} | 增量下发白名单（Differential），请求体为 `SendLocalListRequest` JSON |
+(For testing convenience, all REST APIs are set to GET so they can be called directly in a browser)
+
+| Method | Path                                                                  | Description                                                                            |
+| ------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| GET    | /api/ocpp/connections                                                 | Show current station connection details                                                |
+| GET    | /api/ocpp/status/{cpId}                                               | Get the status and device info of a specific station                                   |
+| GET    | /api/ocpp/remoteStart/{cpId}?idTag={idTag}\&connectorId={connectorId} | Issue start charging command (`idTag` required, `connectorId` optional)                |
+| GET    | /api/ocpp/remoteStop/{cpId}?transactionId={transactionId}             | Issue stop charging command                                                            |
+| GET    | /api/ocpp/localList/version/{cpId}?timeoutSeconds={seconds}           | Query station-side LocalList version (optional timeout in seconds, default 10)         |
+| GET    | /api/ocpp/localList/full/{cpId}?timeoutSeconds={seconds}              | Send full whitelist (Full overwrite)                                                   |
+| POST   | /api/ocpp/localList/diff/{cpId}?timeoutSeconds={seconds}              | Send incremental whitelist (Differential), request body is `SendLocalListRequest` JSON |
+
 ---
 
-## 🛠 开发指南
+## 🛠 Development Guide
 
-### 项目结构
+### Project Structure
 
 ```
 src/main/java
  ├── top.modelx
- │    ├── ws      # WebSocket Server 实现
- │    ├── service # OCPP 消息处理
- │    ├── model   # 设备信息、会话对象
- │    ├── api     # REST 控制器
- │    └── util    # 消息构建工具
+ │    ├── ws      # WebSocket Server implementation
+ │    ├── service # OCPP message handling
+ │    ├── model   # Device information, session objects
+ │    ├── api     # REST controllers
+ │    └── util    # Message construction utilities
 ```
 
-### 新增 OCPP 动作
+### Adding a New OCPP Action
 
-1. 在 `OcppService.handleCall` 中添加 case 分支
-2. 解析 payload，执行业务逻辑
-3. 使用 `OcppMessageUtil.buildCallResult` 返回应答
-
----
-
-## 🧪 测试说明
-
-已验证：
-
-* BootNotification 收发正常，设备状态可在 REST 查询
-* Authorize、RemoteStart、RemoteStop 交易闭环正常
-* SendLocalList、GetLocalListVersion 可下发并解析
-* 心跳与 WebSocket ping/pong 保持连接
+1. Add a `case` branch in `OcppService.handleCall`
+2. Parse the payload and execute the business logic
+3. Use `OcppMessageUtil.buildCallResult` to return the response
 
 ---
 
-## 📄 许可证
+## 🧪 Testing
 
-本项目采用 [MIT License](LICENSE) 开源。
+Verified:
 
----
-
-## 🤝 参与贡献
-
-欢迎提交 Issue 和 Pull Request：
-
-1. Fork 本仓库
-2. 新建分支：`git checkout -b feature-xxx`
-3. 提交修改：`git commit -m '描述信息'`
-4. 推送分支：`git push origin feature-xxx`
-5. 提交 Pull Request
+* BootNotification send/receive works, device status can be queried via REST
+* Authorize, RemoteStart, RemoteStop transaction loop works correctly
+* SendLocalList and GetLocalListVersion can be sent and parsed
+* Heartbeat and WebSocket ping/pong maintain the connection
 
 ---
 
-## 📬 联系
+## 📄 License
 
-如有问题或建议，请提交 [GitHub Issues](https://github.com/quhua0/ocpp_charge/issues) 或发送邮件至 [admin@modelx.top](mailto:admin@modelx.top)
+This project is open-sourced under the [MIT License](LICENSE).
 
+---
+
+## 📬 Contact
+
+For questions or suggestions, please submit a [GitHub Issue](https://github.com/quhua0/ocpp_charge/issues) or email [admin@modelx.top](mailto:admin@modelx.top)
