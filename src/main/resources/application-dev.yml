@@ -1,0 +1,43 @@
+logging:
+  config: classpath:logback-spring.xml
+server:
+  port: 8001
+spring:
+  application:
+    name: ocpp-server
+  servlet:
+    multipart:
+      max-request-size: 200MB
+      max-file-size: 500MB
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+      FAIL_ON_EMPTY_BEANS: false
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+    default-property-inclusion: non_null
+    mapper:
+      PROPAGATE_TRANSIENT_MARKER: true
+    parser:
+      ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER: true
+  liquibase:
+    enabled: false
+  rabbitmq:
+    host: modelx.top
+    port: 5760
+    username: test
+    password: test
+    virtual-host: test_vm
+    connection-timeout: 6000
+    # 以下配置允许没有rabbitmq启动时启动项目
+    listener:
+      direct:
+        auto-startup: false
+      simple:
+        auto-startup: false
+dev:
+  port: 3001
+ocpp:
+  ws:
+    port: 58849
