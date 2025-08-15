@@ -74,6 +74,32 @@ ws://<server-ip>:8080/ocpp/{chargePointId}
 
 ---
 
+
+## 🖥 New Web Management Interface (Visual Operation and Device Log Viewing)
+
+The project has now added a simple web management page, enabling users to easily control charging and view device communication logs in real time.  
+Originally, the project had no front-end interface and all operations relied on REST API calls; now, users can remotely start/stop charging, monitor connection status, and view complete interaction messages directly through a web browser.
+
+Main features:
+- Real-time display of connected charging stations
+- One-click remote start/stop of charging
+- View communication logs of charging devices (including complete OCPP messages)
+
+How to use: After starting the service, access  
+```
+http://<server-ip>:8080/web
+```
+to enter the web interface.
+
+As shown below:
+- Web interface overview  
+  ![Web Interface](doc/web.png)
+- Remote charging start operation and view Device communication interaction log
+  ![Remote Start](doc/web_charge.png)
+
+> ⚠️ Note: The web interface is intended for testing and debugging only. For production environments, it is recommended to add authentication and HTTPS encryption.
+```
+
 ## 🔌 Example: BootNotification Parsing
 
 Station report:

@@ -38,6 +38,21 @@ spring:
         auto-startup: false
 dev:
   port: 3001
+
+# OCPP相关配置
 ocpp:
   ws:
     port: 58849
+
+  # WebSocket端点配置
+  websocket:
+    charging-status-endpoint: "/ws/charging-status"
+    protocol-log-endpoint: "/ws/protocol-logs"
+  # 充电桩模拟配置
+  simulation:
+    # 是否启用数据模拟
+    enabled: true
+    # 数据更新间隔 (秒)
+    update-interval: 5
+    # 模拟充电桩ID
+    default-cp-id: "CP001"

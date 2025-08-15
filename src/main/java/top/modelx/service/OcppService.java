@@ -1,6 +1,9 @@
 package top.modelx.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import top.modelx.model.ChargePointSession;
+import top.modelx.model.DeviceMessageEvent;
 import top.modelx.util.OcppMessageUtil;
 import org.java_websocket.WebSocket;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ public class OcppService {
     private final Map<String, CompletableFuture<Map<String,Object>>> pendingRequests = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * 注册新连接
@@ -70,7 +75,7 @@ public class OcppService {
         for (ChargePointSession s : sessionsById.values()) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("chargePointId", s.getChargePointId());
-            row.put("status", s.getStatus());
+            row.put("status", "在线");
             row.put("currentTransactionId", s.getCurrentTransactionId());
             row.put("lastSeen", s.getLastSeen().toString());
             row.put("connectors", s.getConnectorStatuses());
@@ -121,7 +126,10 @@ public class OcppService {
 
         String frame = OcppMessageUtil.buildCall(uid, "RemoteStartTransaction", payload);
         System.out.println("remoteStart - Sending -> " + frame);
+
         s.getConn().send(frame);
+        logMsg(cpId, frame);
+
         return uid;
     }
 
@@ -139,6 +147,8 @@ public class OcppService {
         String frame = OcppMessageUtil.buildCall(uid, "RemoteStopTransaction", payload);
         System.out.println("remoteStop - Sending -> " + frame);
         s.getConn().send(frame);
+        logMsg(cpId, frame);
+
         return uid;
     }
 
@@ -287,6 +297,8 @@ public class OcppService {
         String uid = OcppMessageUtil.newUid();
         String frame = OcppMessageUtil.buildCall(uid, action, payload == null ? Collections.emptyMap() : payload);
         System.out.println(" sendAction -> "+ frame);
+        logMsg(cpId, frame);
+
         s.getConn().send(frame);
         return uid;
     }
@@ -313,6 +325,7 @@ public class OcppService {
         String frame = OcppMessageUtil.buildCall(uid, action, payload == null ? Collections.emptyMap() : payload);
         System.out.println("Wait Sending -> " + frame);
         s.getConn().send(frame);
+        logMsg(cpId, frame);
 
         try {
             Map<String,Object> res = fut.get(timeoutSeconds + 1, TimeUnit.SECONDS);
@@ -343,7 +356,6 @@ public class OcppService {
         if (localAuthorisationList != null) {
             payload.put("localAuthorisationList", localAuthorisationList);
         }
-
         if (isWait) {
             return sendActionAndWait(cpId, "SendLocalList", payload, timeoutSeconds);
         } else {
@@ -437,5 +449,9 @@ public class OcppService {
             return ((Number)o).intValue();
         }
         try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e){ return null; }
+    }
+
+    private void logMsg(String deviceId, String message) {
+        eventPublisher.publishEvent(new DeviceMessageEvent(deviceId, message, DeviceMessageEvent.Direction.SEND));
     }
 }

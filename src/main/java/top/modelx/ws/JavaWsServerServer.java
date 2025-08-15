@@ -1,5 +1,8 @@
 package top.modelx.ws;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import top.modelx.model.DeviceMessageEvent;
 import top.modelx.service.OcppService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,18 +21,20 @@ import java.net.InetSocketAddress;
 
 /**
  * WebSocket 服务器
+ *
  * @author hua
  * @date 2025/8/8
  */
 @Component
 public class JavaWsServerServer extends WebSocketServer {
-    Logger log=  LogManager.getLogger(JavaWsServerServer.class);
+    Logger log = LogManager.getLogger(JavaWsServerServer.class);
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     private final OcppService ocppService;
 
-    public JavaWsServerServer(
-            OcppService ocppService,
-            @Value("${ocpp.ws.port}") int port
+    public JavaWsServerServer(OcppService ocppService, @Value("${ocpp.ws.port:5000}") int port
     ) {
         super(new InetSocketAddress(port));
         this.ocppService = ocppService;
@@ -54,15 +59,22 @@ public class JavaWsServerServer extends WebSocketServer {
         log.info("连接: " + handshake.getResourceDescriptor());
         String cpId = extractCpId(handshake.getResourceDescriptor());
         ocppService.register(cpId, conn);
+        logMsg(handshake.getResourceDescriptor(), "new conn");
+    }
+
+    private void logMsg(String deviceId, String message) {
+        eventPublisher.publishEvent(new DeviceMessageEvent(deviceId, message, DeviceMessageEvent.Direction.RECEIVE));
     }
 
     @Override
     public void onMessage(WebSocket conn, String message) {
-        log.info("["+conn.getResourceDescriptor()+"]收到: " + message);
+        log.info("[" + conn.getResourceDescriptor() + "]收到: " + message);
         try {
             ocppService.onIncoming(conn, message);
         } catch (Exception e) {
             e.printStackTrace();
+        }finally {
+            logMsg(conn.getResourceDescriptor(), message);
         }
     }
 
@@ -70,6 +82,8 @@ public class JavaWsServerServer extends WebSocketServer {
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         ocppService.unregister(conn);
         log.info("断开: " + reason + " (code=" + code + ")");
+        logMsg(conn.getResourceDescriptor(), "close conn");
+
     }
 
     @Override
@@ -99,7 +113,7 @@ public class JavaWsServerServer extends WebSocketServer {
         if (path == null) {
             return "UNKNOWN";
         }
-        if(path.startsWith("/ks")){
+        if (path.startsWith("/ks")) {
             String p = path.substring(3);
             return p;
         }
